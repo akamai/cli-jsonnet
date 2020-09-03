@@ -12,6 +12,7 @@ class SchemaConverter:
   def convert(self):
     self.write_locals()
     self.writer.writeln("{")
+    self.write_meta_fields()
     self.write_rule()
     self.write_default_rule()
     self.writer.writeln("behavior: {")
@@ -26,7 +27,7 @@ class SchemaConverter:
     pass
 
   def write_meta_fields(self):
-    self.writer.writeln("product:: {product},".format(product=json.dumps(self.product)))
+    self.writer.writeln("productId:: {product},".format(product=json.dumps(self.product)))
     self.writer.writeln("ruleFormat:: {ruleFormat},".format(ruleFormat=json.dumps(self.ruleFormat)))
 
   def write_rule(self):
@@ -84,7 +85,6 @@ class SchemaConverter:
   def convert_atom(self, name, atom):
     options = self.get_atom_options(atom)
     optionNames = [option.get("name") for option in options]
-    validNames = list(atom.get("properties").keys()) + optionNames
 
     self.writer.writeln("{name}: {{".format(name=name))
     self.writer.writeln("local _ = self,")
@@ -92,7 +92,7 @@ class SchemaConverter:
 
     self.writer.writeln()
     for option in options:
-      self.writer.writeln("// {name}:: {default},".format(
+      self.writer.writeln("{name}:: {default},".format(
         name=option.get("name"),
         default=json.dumps(option.get("default"))
       ))
@@ -108,6 +108,8 @@ class SchemaConverter:
     )
     self.writer.writeln("},")
 
+    # TODO: more validation
+    # validNames = list(atom.get("properties").keys()) + optionNames
     # self.writer.write("assert std.length(std.setDiff(std.objectFieldsAll(_), {validNames})) == 0".format(validNames=json.dumps(validNames)))
     # self.writer.writeln(": 'unexpected fields {}',")
 
