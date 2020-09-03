@@ -3,19 +3,46 @@ from jsonpointer import resolve_pointer
 from ..writer import JsonnetWriter
 
 class SchemaConverter:
-  def __init__(self, schema):
+  def __init__(self, schema, product, ruleFormat):
     self.schema = schema
+    self.product = product
+    self.ruleFormat = ruleFormat
     self.writer = JsonnetWriter()
 
   def convert(self):
+    self.write_locals()
     self.writer.writeln("{")
-    self.writer.writeln("behaviors: {")
+    self.write_rule()
+    self.write_default_rule()
+    self.writer.writeln("behavior: {")
     self.convert_behaviors()
     self.writer.writeln("},")
     self.writer.writeln("criteria: {")
     self.convert_criteria()
     self.writer.writeln("},")
     self.writer.writeln("}")
+
+  def write_locals(self):
+    pass
+
+  def write_meta_fields(self):
+    self.writer.writeln("product:: {product},".format(product=json.dumps(self.product)))
+    self.writer.writeln("ruleFormat:: {ruleFormat},".format(ruleFormat=json.dumps(self.ruleFormat)))
+
+  def write_rule(self):
+    self.writer.write(
+      """
+      rule: {
+        name: error "<name> is required",
+        comments: error "<comments> is required",
+
+        behaviors: [],
+        children: [],
+        criteria: [],
+        criteriaMustSatisfy: "all",
+      },
+      """.strip()
+    )
 
   def write_default_rule(self):
     self.writer.write(
@@ -39,7 +66,7 @@ class SchemaConverter:
         variables: [
         ]
       },
-      """
+      """.strip()
     )
 
   def convert_behaviors(self):
@@ -57,20 +84,18 @@ class SchemaConverter:
   def convert_atom(self, name, atom):
     options = self.get_atom_options(atom)
     optionNames = [option.get("name") for option in options]
+    validNames = list(atom.get("properties").keys()) + optionNames
+
     self.writer.writeln("{name}: {{".format(name=name))
     self.writer.writeln("local _ = self,")
+    self.writer.writeln("name: {name},".format(name=json.dumps(name)))
 
     self.writer.writeln()
     for option in options:
-      if "default" in option:
-        # if a default value is specified in the schema, only
-        # output it (commented) for reference
-        self.writer.writeln("// {name}:: {default},".format(
-          name=option.get("name"),
-          default=json.dumps(option.get("default"))
-        ))
-      else:
-        self.writer.writeln("{name}:: error 'required: {name}'")
+      self.writer.writeln("// {name}:: {default},".format(
+        name=option.get("name"),
+        default=json.dumps(option.get("default"))
+      ))
     self.writer.writeln()
 
     self.writer.writeln("options: {")
@@ -78,16 +103,19 @@ class SchemaConverter:
       """
       [name]: _[name]
       for name in {optionNames}
-      if std.objectHas(_, name)
+      if std.objectHasAll(_, name) && _[name] != null
       """.format(optionNames=json.dumps(optionNames)).strip()
     )
-    self.writer.writeln("}")
+    self.writer.writeln("},")
+
+    # self.writer.write("assert std.length(std.setDiff(std.objectFieldsAll(_), {validNames})) == 0".format(validNames=json.dumps(validNames)))
+    # self.writer.writeln(": 'unexpected fields {}',")
 
     self.writer.writeln("},")
 
   def get_atom_options(self, atom):
     options = atom.get("properties").get("options").get("properties")
-    return map(lambda item: self.get_atom_option(atom, *item), options.items())
+    return list(map(lambda item: self.get_atom_option(atom, *item), options.items()))
 
   def get_atom_option(self, atom, name, option):
     if "$ref" in option:

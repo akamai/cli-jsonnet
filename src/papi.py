@@ -11,7 +11,7 @@ def list_products(edgerc, section, contractId, **kwargs):
 
 def mklib(edgerc, section, productId, ruleFormat="latest", **kwargs):
   schema = _get_schema(edgerc, section, productId, ruleFormat)
-  converter = SchemaConverter(schema)
+  converter = SchemaConverter(schema, productId, ruleFormat)
   converter.convert()
   print(converter.writer.getvalue())
 
