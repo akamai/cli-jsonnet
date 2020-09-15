@@ -8,8 +8,8 @@ class SchemaError(RuntimeError):
 
 class Schema:
   @staticmethod
-  def get(edgerc, section, product, ruleFormat="latest"):
-    session = Session(edgerc, section)
+  def get(edgerc, section, product, ruleFormat="latest", accountSwitchKey=None):
+    session = Session(edgerc, section, accountSwitchKey)
     url = "/papi/v1/schemas/products/{product}/{ruleFormat}".format(
       product=product,
       ruleFormat=ruleFormat

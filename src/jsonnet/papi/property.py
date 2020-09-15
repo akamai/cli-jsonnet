@@ -21,9 +21,9 @@ def get_valid_filename(filename):
 
 class Property:
   @staticmethod
-  def get(edgerc, section, name, version="latest"):
+  def get(edgerc, section, name, version="latest", accountSwitchKey=None):
     print("retrieving property json for", name, version)
-    session = Session(edgerc, section)
+    session = Session(edgerc, section, accountSwitchKey)
     response = session.post("/papi/v1/search/find-by-value", json={"propertyName": name})
     versions = response.json().get("versions").get("items")
 

@@ -21,6 +21,7 @@ def init_edgerc(parser):
   env_edgerc_section = os.getenv("AKAMAI_EDGERC_SECTION")
   default_edgerc_section = env_edgerc_section if env_edgerc_section else "default"
   parser.add_argument("--section", help="Edgerc section", default=default_edgerc_section)
+  parser.add_argument("--accountSwitchKey", default=None, required=False, help="[Akamai Internal] account switch key")
 
 def init_papi(parent):
   parser = parent.add_parser("papi", description="Akamai Jsonnet utilities for PAPI.")
