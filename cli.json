@@ -7,7 +7,7 @@
       "name": "jsonnet",
       "aliases": ["jsonnet"],
       "version": "1.0.0",
-      "description": "Manage Akamai Cloudlets"
+      "description": "Utilities for managing Akamai as jsonnet"
     }
   ]
 }
