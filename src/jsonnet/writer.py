@@ -1,5 +1,6 @@
 import textwrap
 import sys
+import json
 # pylint: disable=import-error
 py3 = sys.version_info[0] >= 3
 if py3:
@@ -17,8 +18,11 @@ class JsonnetWriter(StringIO):
     self.write(s + "\n")
 
   def writeMultilineString(self, s):
-    wrapped = "\n".join(textwrap.wrap(s, width=80, initial_indent="    ", subsequent_indent="    "))
-    self.write('|||\n{}\n|||'.format(wrapped))
+    if len(s) < 80:
+      self.write(json.dumps(s))
+    else:
+      wrapped = "\n".join(textwrap.wrap(s, width=80, initial_indent="    ", subsequent_indent="    "))
+      self.write('|||\n{}\n|||'.format(wrapped))
 
   def getvalue(self):
     val = super(JsonnetWriter, self).getvalue()
