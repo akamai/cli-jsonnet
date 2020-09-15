@@ -1,7 +1,6 @@
 import argparse
 import os
 
-
 def main():
   parser = argparse.ArgumentParser(prog="akamai-jsonnet", description="Akamai Jsonnet utilities.")
   init_defaults(parser)
@@ -29,21 +28,34 @@ def init_papi(parent):
   init_edgerc(parser)
   subparsers = parser.add_subparsers(title="Commands")
   init_papi_products(subparsers)
-  init_papi_mklib(subparsers)
+  init_papi_schema(subparsers)
+  init_papi_property(subparsers)
 
 def init_papi_products(parent):
-  from .papi import list_products
+  from .papi import products
 
-  parser = parent.add_parser("products", description="list available products")
+  parser = parent.add_parser("products", help="list available products")
   init_defaults(parser)
   parser.add_argument("--contractId", required=True)
-  parser.set_defaults(func=lambda args: list_products(**vars(args)))
+  parser.set_defaults(func=lambda args: products(**vars(args)))
 
-def init_papi_mklib(parent):
-  from .papi import mklib
+def init_papi_schema(parent):
+  from .papi import schema
 
-  parser = parent.add_parser("mklib", description="create libsonnet file for the given product and rule format")
+  parser = parent.add_parser("schema", help="create libsonnet file for the given product and rule format")
   init_defaults(parser)
   parser.add_argument("--productId", required=True)
   parser.add_argument("--ruleFormat", required=False, default="latest")
-  parser.set_defaults(func=lambda args: mklib(**vars(args)))
+  parser.set_defaults(func=lambda args: schema(**vars(args)))
+
+def init_papi_property(parent):
+  from .papi import property
+
+  parser = parent.add_parser("property", help="create jsonnet template from an existing PAPI property")
+  init_defaults(parser)
+  parser.add_argument("--productId", required=True)
+  parser.add_argument("--ruleFormat", required=False, default="latest")
+  parser.add_argument("--propertyName", required=True)
+  parser.add_argument("--propertyVersion", required=False, default="latest")
+  parser.add_argument("--file", required=False, help="file containing a json rule tree")
+  parser.set_defaults(func=lambda args: property(**vars(args)))

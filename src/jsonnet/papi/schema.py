@@ -1,12 +1,45 @@
 import json
 from jsonpointer import resolve_pointer
+from ...edgegrid import Session
 from ..writer import JsonnetWriter
 
-class SchemaConverter:
+class SchemaError(RuntimeError):
+  pass
+
+class Schema:
+  @staticmethod
+  def get(edgerc, section, product, ruleFormat="latest"):
+    session = Session(edgerc, section)
+    url = "/papi/v1/schemas/products/{product}/{ruleFormat}".format(
+      product=product,
+      ruleFormat=ruleFormat
+    )
+    response = session.get(url)
+    schema = response.json()
+    return Schema(schema, product, ruleFormat)
+
   def __init__(self, schema, product, ruleFormat):
     self.schema = schema
     self.product = product
     self.ruleFormat = ruleFormat
+
+  def resolve_pointer(self, ptr):
+    return resolve_pointer(self.schema, ptr.lstrip("#"))
+
+  def get_defaults(self, atom):
+    if atom.get("type", None) != "object":
+      raise SchemaError("expecting object schema")
+    defaults = {}
+    for (name, prop) in atom.get("properties", {}).items():
+      if "$ref" in prop:
+        prop = self.resolve_pointer(prop.get("$ref"))
+      defaults[name] = prop.get("default", None)
+    return defaults
+
+
+class SchemaConverter:
+  def __init__(self, schema):
+    self.schema = schema
     self.writer = JsonnetWriter()
 
   def convert(self):
@@ -15,7 +48,7 @@ class SchemaConverter:
     self.write_meta_fields()
     self.write_rule()
     self.write_default_rule()
-    self.writer.writeln("behavior: {")
+    self.writer.writeln("behaviors: {")
     self.convert_behaviors()
     self.writer.writeln("},")
     self.writer.writeln("criteria: {")
@@ -27,20 +60,22 @@ class SchemaConverter:
     pass
 
   def write_meta_fields(self):
-    self.writer.writeln("productId:: {product},".format(product=json.dumps(self.product)))
-    self.writer.writeln("ruleFormat:: {ruleFormat},".format(ruleFormat=json.dumps(self.ruleFormat)))
+    self.writer.writeln("productId:: {product},".format(product=json.dumps(self.schema.product)))
+    self.writer.writeln("ruleFormat:: {ruleFormat},".format(ruleFormat=json.dumps(self.schema.ruleFormat)))
 
   def write_rule(self):
     self.writer.write(
       """
       rule: {
         name: error "<name> is required",
-        comments: error "<comments> is required",
+        comments: "",
+        //comments: error "<comments> is required",
 
         behaviors: [],
         children: [],
         criteria: [],
         criteriaMustSatisfy: "all",
+        options: {},
       },
       """.strip()
     )
@@ -50,7 +85,6 @@ class SchemaConverter:
       """
       root: {
         local _ = self,
-        is_secure:: error "is_secure is required",
         // The name of the default rule MUST BE "default", otherwise
         // PAPI throws occassional random errors.
         name: "default",
@@ -62,7 +96,7 @@ class SchemaConverter:
         behaviors: [],
         children: [],
         options: {
-          is_secure: _.is_secure,
+          //is_secure: false,
         },
         variables: [
         ]
@@ -71,11 +105,11 @@ class SchemaConverter:
     )
 
   def convert_behaviors(self):
-    behaviors = self.resolve_pointer("/definitions/catalog/behaviors")
+    behaviors = self.schema.resolve_pointer("/definitions/catalog/behaviors")
     self.convert_atoms(behaviors.items())
 
   def convert_criteria(self):
-    criteria = self.resolve_pointer("/definitions/catalog/criteria")
+    criteria = self.schema.resolve_pointer("/definitions/catalog/criteria")
     self.convert_atoms(criteria.items())
 
   def convert_atoms(self, atoms):
@@ -121,14 +155,9 @@ class SchemaConverter:
 
   def get_atom_option(self, atom, name, option):
     if "$ref" in option:
-      option.update(self.resolve_pointer(option.get("$ref")))
+      option.update(self.schema.resolve_pointer(option.get("$ref")))
     return {
       "name": name,
       "default": option.get("default", None)
     }
-
-  def resolve_pointer(self, ptr):
-    return resolve_pointer(self.schema, ptr.lstrip("#"))
-
-
 
