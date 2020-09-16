@@ -126,9 +126,10 @@ class RuleConverter(BaseConverter):
     self.writer.writeln('{} {{'.format(self.template))
     self.writer.writeln('name: {},'.format(json.dumps(self.ruleName)))
 
-    self.writer.write('comments: ')
-    self.writer.writeMultilineString(self.rule.get("comments", ""))
-    self.writer.writeln(',')
+    if len(self.rule.get("comments", "")) > 0:
+      self.writer.write('comments: ')
+      self.writer.writeMultilineString(self.rule.get("comments", ""))
+      self.writer.writeln(',')
 
     if "options" in self.rule:
       if len(self.rule.get("options")):
@@ -145,6 +146,22 @@ class RuleConverter(BaseConverter):
     self.convert_criteria()
     self.convert_behaviors()
     self.convert_children()
+
+    if "customOverride" in self.rule:
+      customOverride = self.rule.get("customOverride", {})
+      if len(customOverride) > 0:
+        self.writer.writeln("customOverride: {")
+        for (k, v) in customOverride.items():
+          self.writer.writeln("{k}: {v},".format(k, json.dumps(v)))
+        self.writer.writeln("},")
+
+    if "advancedOverride" in self.rule:
+      xml = self.rule.get("advancedOverride")
+      advancedOverridePath = os.path.join(os.path.dirname(self.path), "advancedOverride.xml")
+      with open(advancedOverridePath, "w") as fd:
+        print(advancedOverridePath)
+        fd.write(xml)
+      self.writer.writeln("advancedOverride: importstr {},".format(json.dumps(os.path.basename(advancedOverridePath))))
 
     self.writer.writeln('}')
     self.write_to(self.path)
