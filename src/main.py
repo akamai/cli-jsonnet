@@ -26,7 +26,6 @@ def init_edgerc(parser):
 def init_papi(parent):
   parser = parent.add_parser("papi", description="Akamai Jsonnet utilities for PAPI.")
   init_defaults(parser)
-  init_edgerc(parser)
   subparsers = parser.add_subparsers(title="Commands")
   init_papi_products(subparsers)
   init_papi_schema(subparsers)
