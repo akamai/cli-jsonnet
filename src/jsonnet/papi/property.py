@@ -196,7 +196,16 @@ class RuleConverter(BaseConverter):
       defaults = self.schema.get_defaults(schema.get("properties").get("options"))
       converted = dict(name=atom.get("name"), options=dict())
       for (name, option) in atom.get("options", {}).items():
-        if option != defaults.get(name):
+        # For behaviours, only output options that differ from the
+        # default. For criteria, readability is improved if all
+        # options are included, to avoid situations like:
+        #
+        # criteria: [
+        #   papi.criteria.requestProtocol,
+        # ]
+        #
+        # Thanks Ian Cass!
+        if option != defaults.get(name) or ns == "criteria":
           converted["options"][name] = option
       results.append(converted)
     if len(results):
