@@ -205,7 +205,7 @@ class RuleConverter(BaseConverter):
         self.writer.write("papi.{}.{}".format(ns, atom.get("name")))
         if len(atom.get("options")):
           self.writer.write(" ")
-          self.writer.write(json.dumps(atom.get("options")))
+          self.writer.write(json.dumps(atom.get("options"), indent="  "))
         self.writer.writeln(",")
       self.writer.writeln("],")
 
