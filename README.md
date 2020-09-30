@@ -118,10 +118,12 @@ jsonnet -J jsonnet/lib jsonnet/templates/www.example.com.jsonnet
 
 ### PAPI
 
-**Error: "The Race Results Hostname option in `SureRoute` must not be empty."**
+When attempting to push a PAPI rule tree generated from jsonnet using a `papi.libsonnet`
+generated from the schema, you may encounter some errors.
 
-When attempting to push a PAPI rule tree generated from jsonnet, you may encounter
-this error (seen on ruleFormat v2020-03-04):
+These are typically very easy to correct.
+
+**Error: "The Race Results Hostname option in `SureRoute` must not be empty."**
 
 ```json
 {
@@ -137,3 +139,32 @@ When using `papi.behaviors.sureRoute`, set the `customStatKey` to `null` explici
 This is because the schema specifies a default value of `''` (the empty string), which
 does not pass validation.
 
+**Error: "The mPulse API Key option on the `mPulse` behavior is required."**
+
+```json
+{
+    "type": "https://problems.luna.akamaiapis.net/papi/v0/validation/attribute_required",
+    "errorLocation": "#/rules/behaviors/4/options/apiKey",
+    "detail": "The mPulse API Key option on the `mPulse` behavior is required."
+}
+```
+
+**Workaround**
+
+When using `papi.behaviors.mPulse` without an API key, set the `apiKey` to  `''` (the empty string)
+explicitly. This is because the schema does not specify a default value, but that field is required.
+
+**Error: "The Custom ResourceTiming Buffer Size option on the `mPulse` behavior is required."**
+
+```json
+{
+    "type": "https://problems.luna.akamaiapis.net/papi/v0/validation/attribute_required",
+    "errorLocation": "#/rules/behaviors/4/options/bufferSize",
+    "detail": "The Custom ResourceTiming Buffer Size option on the `mPulse` behavior is required."
+}
+```
+
+**Workaround**
+
+When using `papi.behaviors.mPulse` without a customized ResourceTiming buffer size, set the `bufferSize`
+explicitly to `''` (the empty string).
