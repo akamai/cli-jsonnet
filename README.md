@@ -168,3 +168,19 @@ explicitly. This is because the schema does not specify a default value, but tha
 
 When using `papi.behaviors.mPulse` without a customized ResourceTiming buffer size, set the `bufferSize`
 explicitly to `''` (the empty string).
+
+**Error: "SaaS module required"**
+
+```json
+{
+  "type": "https://problems.luna.akamaiapis.net/papi/v0/validation/option_validation_error",
+  "errorLocation": "#/rules/behaviors/0/options/saasType",
+  "detail": "SaaS module required"
+}
+```
+
+**Workaround**
+
+Some products add options to the schema, but the default values are only valid if the product is
+available on the contract. In this case, the `saasType` field needs to be set explicitly to `null`
+in the `origin` behavior.
