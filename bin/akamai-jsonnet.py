@@ -5,3 +5,7 @@ sys.path.append(abspath(join(dirname(__file__), "..")))
 from src.main import main
 
 main()
+
+# avoid BrokenPipeError/IOError when piping output into e.g. head
+sys.stderr.close()
+sys.stdout.close()
