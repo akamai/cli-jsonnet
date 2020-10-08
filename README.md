@@ -21,7 +21,7 @@ Of course, you will also need an `.edgerc` file populated with Akamai OPEN API c
 ## Install
 
 ```
-akamai install https://github.com/ynohat/cli-jsonnet.git
+akamai install https://github.com/akamai-contrib/cli-jsonnet.git
 ```
 
 ## Managing Akamai Properties
