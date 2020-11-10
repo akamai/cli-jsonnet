@@ -16,12 +16,12 @@ def schema(edgerc, section, productId, ruleFormat="latest", accountSwitchKey=Non
   converter.convert()
   print(converter.writer.getvalue())
 
-def property(edgerc, section, productId, propertyName, propertyVersion="latest", file=None, ruleFormat="latest", accountSwitchKey=None, **kwargs):
+def property(edgerc, section, productId, propertyName, propertyVersion="latest", file=None, ruleFormat=None, accountSwitchKey=None, **kwargs):
   schema = Schema.get(edgerc, section, productId, ruleFormat, accountSwitchKey)
 
   property = None
   if file is None:
-    property = Property.get(edgerc, section, propertyName, propertyVersion, accountSwitchKey)
+    property = Property.get(edgerc, section, propertyName, propertyVersion, ruleFormat, accountSwitchKey)
   else:
     with open(file, "r") as fd:
       data = json.loads(fd.read())

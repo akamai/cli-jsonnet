@@ -21,9 +21,10 @@ def get_valid_filename(filename):
 
 class Property:
   @staticmethod
-  def get(edgerc, section, name, version="latest", accountSwitchKey=None):
+  def get(edgerc, section, name, version="latest", ruleFormat=None, accountSwitchKey=None):
     print("retrieving property json for", name, version)
     session = Session(edgerc, section, accountSwitchKey)
+    headers = {}
     response = session.post("/papi/v1/search/find-by-value", json={"propertyName": name})
     versions = response.json().get("versions").get("items")
 
@@ -32,8 +33,11 @@ class Property:
     if version != "latest":
       pv = version
 
+    if ruleFormat is not None:
+      accept = "application/vnd.akamai.papirules.{}".format(ruleFormat)
+      headers["Accept"] = accept
     url = "/papi/v1/properties/{}/versions/{}/rules".format(pid, pv)
-    response = session.get(url, params=dict(validateRules=False, validateMode="fast"))
+    response = session.get(url, headers=headers, params=dict(validateRules=False, validateMode="fast"))
     data = response.json()
     return Property(name, data)
 
@@ -191,22 +195,9 @@ class RuleConverter(BaseConverter):
   def convert_criteria_or_behaviors(self, ns):
     results = []
     for atom in self.rule.get(ns, []):
-      schema_ptr = "/definitions/catalog/{}/{}".format(ns, atom.get("name"))
-      schema = self.schema.resolve_pointer(schema_ptr)
-      defaults = self.schema.get_defaults(schema.get("properties").get("options"))
       converted = dict(name=atom.get("name"), options=dict())
       for (name, option) in atom.get("options", {}).items():
-        # For behaviours, only output options that differ from the
-        # default. For criteria, readability is improved if all
-        # options are included, to avoid situations like:
-        #
-        # criteria: [
-        #   papi.criteria.requestProtocol,
-        # ]
-        #
-        # Thanks Ian Cass!
-        if option != defaults.get(name) or ns == "criteria":
-          converted["options"][name] = option
+        converted["options"][name] = option
       results.append(converted)
     if len(results):
       self.writer.writeln("{}: [".format(ns))
