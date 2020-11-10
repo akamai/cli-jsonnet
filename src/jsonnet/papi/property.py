@@ -73,15 +73,14 @@ class VariablesConverter(BaseConverter):
     return os.path.join(self.parent.pathPrefix, "variables.jsonnet")
 
   def convert(self):
-    if len(self.variables):
-      self.writer.writeln("[")
-      for variable in self.variables:
-        self.writer.writeln("{")
-        for (name, value) in variable.items():
-          self.writer.writeln("{}: {},".format(name, json.dumps(value)))
-        self.writer.writeln("},")
-      self.writer.writeln("]")
-      self.write_to(self.path)
+    self.writer.writeln("[")
+    for variable in self.variables:
+      self.writer.writeln("{")
+      for (name, value) in variable.items():
+        self.writer.writeln("{}: {},".format(name, json.dumps(value)))
+      self.writer.writeln("},")
+    self.writer.writeln("]")
+    self.write_to(self.path)
 
 class RuleConverter(BaseConverter):
   def __init__(self, schema, rule, parent=None):
