@@ -34,11 +34,12 @@ class Property:
       pv = version
 
     if ruleFormat is not None:
-      accept = "application/vnd.akamai.papirules.{}".format(ruleFormat)
+      accept = "application/vnd.akamai.papirules.{}+json".format(ruleFormat)
       headers["Accept"] = accept
     url = "/papi/v1/properties/{}/versions/{}/rules".format(pid, pv)
     response = session.get(url, headers=headers, params=dict(validateRules=False, validateMode="fast"))
     data = response.json()
+    print(data)
     return Property(name, data)
 
   def __init__(self, name, data):
