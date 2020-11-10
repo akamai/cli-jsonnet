@@ -128,7 +128,9 @@ class SchemaConverter:
     for option in options:
       self.writer.writeln("{name}:: {default},".format(
         name=option.get("name"),
-        default=json.dumps(option.get("default"))
+        # setting implicit default values from the schema is a bad idea,
+        # because they can be incompatible with each other.
+        default="null",
       ))
     self.writer.writeln()
 
