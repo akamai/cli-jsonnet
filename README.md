@@ -184,3 +184,18 @@ explicitly to `''` (the empty string).
 Some products add options to the schema, but the default values are only valid if the product is
 available on the contract. In this case, the `saasType` field needs to be set explicitly to `null`
 in the `origin` behavior.
+
+**Error: "toolkit/error_saving_data"**
+
+```json
+{
+    "instance": "https://akab-mhobwut67rzir65w-3olsffygugzi6zyy.luna.akamaiapis.net/papi/v1/properties/prp_662903/versions/1/rules?dryRun=true#c5f45faad107115a",
+    "type": "https://problems.luna.akamaiapis.net/papi/v0/toolkit/error_saving_data"
+}
+```
+
+**Workaround**
+
+Check if you are using `papi.behaviors.cacheId`. By default, the schema specifies `optional: true`,
+which is only valid with specific values of `rule` (see [the catalog](https://developer.akamai.com/api/core_features/property_manager/v2020-03-04.html#cacheid)
+for details. In this case, explicitly set `optional: null`.
