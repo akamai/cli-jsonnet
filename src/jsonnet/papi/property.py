@@ -156,7 +156,7 @@ class RuleConverter(BaseConverter):
       if len(customOverride) > 0:
         self.writer.writeln("customOverride: {")
         for (k, v) in customOverride.items():
-          self.writer.writeln("{k}: {v},".format(k, json.dumps(v)))
+          self.writer.writeln("{}: {},".format(k, json.dumps(v)))
         self.writer.writeln("},")
 
     if "advancedOverride" in self.rule:
