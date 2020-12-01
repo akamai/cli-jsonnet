@@ -39,7 +39,6 @@ class Property:
     url = "/papi/v1/properties/{}/versions/{}/rules".format(pid, pv)
     response = session.get(url, headers=headers, params=dict(validateRules=False, validateMode="fast"))
     data = response.json()
-    print(data)
     return Property(name, data)
 
   def __init__(self, name, data):
