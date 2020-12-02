@@ -1,3 +1,4 @@
+import os, os.path
 import json
 from .edgegrid import Session
 from .logging import logger
@@ -16,8 +17,16 @@ def schema(edgerc, section, productId, ruleFormat="latest", accountSwitchKey=Non
   converter.convert()
   print(converter.writer.getvalue())
 
-def property(edgerc, section, productId, propertyName, propertyVersion="latest", file=None, ruleFormat=None, accountSwitchKey=None, **kwargs):
+def property(edgerc, section, productId, propertyName, propertyVersion="latest", standalone=True, file=None, ruleFormat="latest", accountSwitchKey=None, **kwargs):
   schema = Schema.get(edgerc, section, productId, ruleFormat, accountSwitchKey)
+
+  if not standalone:
+    converter = SchemaConverter(schema)
+    converter.convert()
+    schema_path = 'papi/{}/{}.libsonnet'.format(productId, ruleFormat) # TODO: make this a constant (shared with property.py)
+    os.makedirs(os.path.dirname(schema_path), exist_ok=True)
+    with open(schema_path, "w") as fd:
+      fd.write(converter.writer.getvalue())
 
   property = None
   if file is None:

@@ -58,4 +58,5 @@ def init_papi_property(parent):
   parser.add_argument("--propertyName", required=True)
   parser.add_argument("--propertyVersion", required=False, default="latest")
   parser.add_argument("--file", required=False, help="file containing a json rule tree")
+  parser.add_argument("--standalone", action="store_true", default=False, required=False, help="only generate the property json")
   parser.set_defaults(func=lambda args: property(**vars(args)))
