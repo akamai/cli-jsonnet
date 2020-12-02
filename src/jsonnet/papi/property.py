@@ -1,4 +1,4 @@
-import json
+import json, sys
 from jsonpointer import resolve_pointer
 from ...edgegrid import Session
 from ..writer import JsonnetWriter
@@ -22,7 +22,7 @@ def get_valid_filename(filename):
 class Property:
   @staticmethod
   def get(edgerc, section, name, version="latest", ruleFormat=None, accountSwitchKey=None):
-    print("retrieving property json for", name, version)
+    print("retrieving property json for", name, version, file=sys.stderr)
     session = Session(edgerc, section, accountSwitchKey)
     headers = {}
     response = session.post("/papi/v1/search/find-by-value", json={"propertyName": name})
@@ -60,7 +60,7 @@ class BaseConverter:
       os.makedirs(dirname, exist_ok=True)
     with open(path, "w") as fd:
       fd.write(data)
-    print(path)
+    print(path, file=sys.stderr)
 
 class VariablesConverter(BaseConverter):
   def __init__(self, schema, variables, parent):
