@@ -134,6 +134,9 @@ class RuleConverter(BaseConverter):
       self.writer.writeMultilineString(self.rule.get("comments", ""))
       self.writer.writeln(',')
 
+    if "uuid" in self.rule:
+      self.writer.writeln('uuid: {},'.format(json.dumps(self.rule.get('uuid'))))
+
     if "options" in self.rule:
       if len(self.rule.get("options")):
         self.writer.writeln("options: {")
@@ -202,6 +205,13 @@ class RuleConverter(BaseConverter):
       self.writer.writeln("{}: [".format(ns))
       for atom in results:
         self.writer.write("papi.{}.{}".format(ns, atom.get("name")))
+        # The uuid is normally stored at the root of the atom, e.g. {name: 'caching', uuid: 'xyz', options: {...}}
+        # Because we are generated simplified syntax, we output it as part of the body along with the options
+        # e.g. papi.behaviors.caching { uuid: 'xyz', ... }
+        if "uuid" in atom:
+          if not "options" in atom:
+            atom["options"] = {}
+          atom["options"]["uuid"] = atom.get("uuid")
         if len(atom.get("options")):
           self.writer.write(" ")
           self.writer.write(json.dumps(atom.get("options"), indent="  "))
