@@ -184,7 +184,12 @@ class RuleConverter(BaseConverter):
 
   def convert_children(self):
     children = []
+    from collections import Counter
+    nameCounter = Counter()
     for child in self.rule.get("children", []):
+      nameCounter[child["name"]] += 1
+      if nameCounter[child["name"]] > 1:
+        child["name"] = "{} {}".format(child["name"], nameCounter[child["name"]])
       children.append(RuleConverter(self.schema, child, self))
     if len(children):
       self.writer.writeln("children: [")
