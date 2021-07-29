@@ -202,9 +202,15 @@ class RuleConverter(BaseConverter):
   def convert_criteria_or_behaviors(self, ns):
     results = []
     for atom in self.rule.get(ns, []):
+      options_schema_ptr = "/definitions/catalog/{}/{}/properties/options/properties".format(ns, atom.get("name"))
+      options_schema = self.schema.resolve_pointer(options_schema_ptr)
       converted = dict(name=atom.get("name"), options=dict())
       for (name, option) in atom.get("options", {}).items():
-        converted["options"][name] = option
+        if name in options_schema:
+          # only include fields that are actually defined in the schema;
+          # PAPI **will** return extraneous fields, which will then cause
+          # trouble when we try to render the template back to json
+          converted["options"][name] = option
       results.append(converted)
     if len(results):
       self.writer.writeln("{}: [".format(ns))
