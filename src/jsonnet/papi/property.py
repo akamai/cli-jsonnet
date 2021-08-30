@@ -262,6 +262,10 @@ class PropertyConverter(BaseConverter):
     self.writer.writeln('{')
     self.writer.writeln('productId: {},'.format(json.dumps(self.schema.product)))
     self.writer.writeln('ruleFormat: {},'.format(json.dumps(self.schema.ruleFormat)))
+    if 'contractId' in self.property.data:
+      self.writer.writeln('contractId: {},'.format(json.dumps(self.property.data.get('contractId'))))
+    if 'groupId' in self.property.data:
+      self.writer.writeln('groupId: {},'.format(json.dumps(self.property.data.get('groupId'))))
     defaultRule = RuleConverter(self.schema, self.property.data.get("rules"), self)
     defaultRule.convert()
     self.writer.writeln('rules: import {},'.format(json.dumps(defaultRule.path)))
