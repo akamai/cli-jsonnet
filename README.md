@@ -66,7 +66,7 @@ This can be easily generated using the following commands:
 PRODUCT=SPM
 RULE_FORMAT=v2020-03-04
 mkdir -p jsonnet/lib/papi/${PRODUCT}
-akamai jsonnet papi --section papi schema --productId ${PRODUCT} --ruleFormat ${RULE_FORMAT} > jsonnet/lib/papi/SPM/${RULE_FORMAT}.libsonnet
+akamai jsonnet papi schema --productId ${PRODUCT} --ruleFormat ${RULE_FORMAT} > jsonnet/lib/papi/${PRODUCT}/${RULE_FORMAT}.libsonnet
 ```
 
 > SPM is the product id for Ion Premier. To see which products are available,
