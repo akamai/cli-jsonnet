@@ -1,5 +1,5 @@
 import argparse
-import os
+import os, sys, textwrap
 
 def main():
   parser = argparse.ArgumentParser(prog="akamai-jsonnet", description="Akamai Jsonnet utilities.")
@@ -8,7 +8,12 @@ def main():
   subparsers = parser.add_subparsers(title="Commands")
   init_papi(subparsers)
   args = parser.parse_args()
-  args.func(args)
+
+  try:
+    args.func(args)
+  except Exception as e:
+    print(textwrap.indent("Error: " + str(e), prefix='!!! '), file=sys.stderr)
+    sys.exit(1)
 
 def init_defaults(parser):
   parser.set_defaults(func=lambda args: parser.print_help())
