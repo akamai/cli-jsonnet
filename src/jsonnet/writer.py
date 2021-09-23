@@ -1,3 +1,4 @@
+import os
 import textwrap
 import sys
 import json
@@ -34,3 +35,13 @@ class JsonnetWriter(StringIO):
     except:
       pass
     return val
+
+  def dump(self, path):
+    data = self.getvalue()
+    dirname = os.path.dirname(path)
+    if len(dirname):
+      os.makedirs(dirname, exist_ok=True)
+    with open(path, "w") as fd:
+      fd.write(data)
+    print(os.path.realpath(path), file=sys.stderr)
+

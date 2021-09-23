@@ -9,11 +9,12 @@ def main():
   init_papi(subparsers)
   args = parser.parse_args()
 
-  try:
-    args.func(args)
-  except Exception as e:
-    print(textwrap.indent("Error: " + str(e), prefix='!!! '), file=sys.stderr)
-    sys.exit(1)
+  args.func(args)
+  # try:
+  #   args.func(args)
+  # except Exception as e:
+  #   print(textwrap.indent("Error: " + str(e), prefix='!!! '), file=sys.stderr)
+  #   sys.exit(1)
 
 def init_defaults(parser):
   parser.set_defaults(func=lambda args: parser.print_help())
@@ -33,8 +34,10 @@ def init_papi(parent):
   init_defaults(parser)
   subparsers = parser.add_subparsers(title="Commands")
   init_papi_products(subparsers)
-  init_papi_schema(subparsers)
-  init_papi_property(subparsers)
+  init_papi_bootstrap(subparsers)
+  init_papi_ruleformat(subparsers)
+  init_papi_ruletree(subparsers)
+  init_papi_hostnames(subparsers)
 
 def init_papi_products(parent):
   from .papi import products
@@ -44,24 +47,46 @@ def init_papi_products(parent):
   parser.add_argument("--contractId", required=True)
   parser.set_defaults(func=lambda args: products(**vars(args)))
 
-def init_papi_schema(parent):
-  from .papi import schema
+def init_papi_ruleformat(parent):
+  from .papi import ruleformat
 
-  parser = parent.add_parser("schema", help="create libsonnet file for the given product and rule format")
+  parser = parent.add_parser("ruleformat", help="create libsonnet file for the given product and rule format")
   init_defaults(parser)
   parser.add_argument("--productId", required=True)
   parser.add_argument("--ruleFormat", required=False, default="latest")
-  parser.set_defaults(func=lambda args: schema(**vars(args)))
+  parser.set_defaults(func=lambda args: ruleformat(**vars(args)))
 
-def init_papi_property(parent):
-  from .papi import property
+def init_papi_ruletree(parent):
+  from .papi import ruletree
 
-  parser = parent.add_parser("property", help="create jsonnet template from an existing PAPI property")
+  parser = parent.add_parser("ruletree", help="create jsonnet template from an existing PAPI rule tree")
   init_defaults(parser)
   parser.add_argument("--productId", required=True)
   parser.add_argument("--ruleFormat", required=False, default="latest")
   parser.add_argument("--propertyName", required=True)
   parser.add_argument("--propertyVersion", required=False, default="latest")
   parser.add_argument("--file", required=False, help="file containing a json rule tree")
-  parser.add_argument("--standalone", action="store_true", default=False, required=False, help="only generate the property json")
-  parser.set_defaults(func=lambda args: property(**vars(args)))
+  parser.add_argument("--out", required=False, help="output directory for the template entrypoint; default to {propertyName}")
+  parser.set_defaults(func=lambda args: ruletree(**vars(args)))
+
+def init_papi_hostnames(parent):
+  from .papi import hostnames
+
+  parser = parent.add_parser("hostnames", help="create jsonnet template from an existing PAPI hostnames mapping")
+  init_defaults(parser)
+  parser.add_argument("--propertyName", required=True)
+  parser.add_argument("--propertyVersion", required=False, default="latest")
+  parser.set_defaults(func=lambda args: hostnames(**vars(args)))
+
+def init_papi_bootstrap(parent):
+  from .papi import bootstrap
+
+  parser = parent.add_parser("bootstrap", help="bootstrap a property as a template in a multi-env setup")
+  init_defaults(parser)
+  parser.add_argument("--productId", required=True)
+  parser.add_argument("--ruleFormat", required=False, default="latest")
+  parser.add_argument("--propertyName", required=True)
+  parser.add_argument("--propertyVersion", required=False, default="latest")
+  parser.add_argument("--out", required=False, help="output directory for the template entrypoint; default to {propertyName}")
+  parser.add_argument("--bossman", required=False, action='store_true', default=False, help="create .bossman configuration?")
+  parser.set_defaults(func=lambda args: bootstrap(**vars(args)))

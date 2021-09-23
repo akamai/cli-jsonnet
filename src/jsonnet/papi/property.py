@@ -1,25 +1,46 @@
-import json, sys
-from jsonpointer import resolve_pointer
-from ...edgegrid import Session
 from ..writer import JsonnetWriter
-import os
-import re
-
-def get_valid_filename(filename):
-  """
-  Return the given string converted to a string that can be used for a clean
-  filename. Remove leading and trailing spaces; convert other spaces to
-  underscores; and remove anything that is not an alphanumeric, dash,
-  underscore, or dot.
-  >>> get_valid_filename("john's portrait in 2004.jpg")
-  'johns_portrait_in_2004.jpg'
-
-  (stolen from: https://github.com/django/django/blob/master/django/utils/text.py)
-  """
-  s = filename.strip().replace(' ', '_')
-  return re.sub(r'(?u)[^-\w.]', '', s)
+import sys
+from ...edgegrid import Session
 
 class Property:
+  @staticmethod
+  def getHostnames(edgerc, section, name, version="latest", accountSwitchKey=None):
+    session = Session(edgerc, section, accountSwitchKey)
+
+    print("*** searching for property...", name, file=sys.stderr)
+    response = session.post("/papi/v1/search/find-by-value", json={"propertyName": name})
+    if not response.ok:
+      raise RuntimeError(
+        (
+          "Endpoint /papi/v1/search/find-by-value said:\n"
+          "%s %s\n"
+          "%s\n"
+        ) % (response.status_code, response.reason, response.text)
+      )
+
+    versions = response.json().get("versions").get("items")
+    if len(versions) == 0:
+      raise RuntimeError("not found")
+
+    pid = next(version.get("propertyId") for version in versions)
+    if version == "latest":
+      version = max(v.get("propertyVersion") for v in versions)
+      print("*** Latest is v%s" % version, file=sys.stderr)
+
+    print("*** retrieving property hostnames for", name, version, file=sys.stderr)
+    url = "/papi/v1/properties/{}/versions/{}/hostnames".format(pid, version)
+    response = session.get(url)
+    if not response.ok:
+      raise RuntimeError(
+        (
+          "Endpoint %s said:\n"
+          "%s %s\n"
+          "%s\n"
+        ) % (url, response.status_code, response.reason, response.text)
+      )
+    hostnames = response.json().get('hostnames').get('items')
+    return hostnames
+
   @staticmethod
   def get(edgerc, section, name, version="latest", ruleFormat=None, accountSwitchKey=None):
     session = Session(edgerc, section, accountSwitchKey)
@@ -44,10 +65,10 @@ class Property:
       version = max(v.get("propertyVersion") for v in versions)
       print("*** Latest is v%s" % version, file=sys.stderr)
 
-    print("*** retrieving property rule tree json for", name, version, file=sys.stderr)
+    print("*** retrieving property rule tree for", name, pid, version, file=sys.stderr)
     headers = {}
     if ruleFormat is not None:
-      accept = "application/vnd.akamai.papirules.{}+json".format(ruleFormat)
+      accept = "application/vnd.akamai.papirules.{}+json".format(ruleFormat.ruleFormat)
       headers["Accept"] = accept
     url = "/papi/v1/properties/{}/versions/{}/rules".format(pid, version)
     response = session.get(url, headers=headers, params=dict(validateRules=False, validateMode="fast"))
@@ -59,237 +80,23 @@ class Property:
           "%s\n"
         ) % (url, response.status_code, response.reason, response.text)
       )
+    ruleTree = response.json()
 
-    data = response.json()
-    return Property(name, data)
+    print("*** retrieving property hostnames for", name, version, file=sys.stderr)
+    url = "/papi/v1/properties/{}/versions/{}/hostnames".format(pid, version)
+    response = session.get(url)
+    if not response.ok:
+      raise RuntimeError(
+        (
+          "Endpoint %s said:\n"
+          "%s %s\n"
+          "%s\n"
+        ) % (url, response.status_code, response.reason, response.text)
+      )
+    hostnames = response.json().get('hostnames').get('items')
+    return Property(name, ruleTree, hostnames)
 
-  def __init__(self, name, data):
+  def __init__(self, name, ruleTree, hostnames):
     self.name = name
-    self.data = data
-
-class BaseConverter:
-  def __init__(self, schema):
-    self.schema = schema
-    self.writer = JsonnetWriter()
-
-  def write_papi_import_statement(self):
-    self.writer.writeln("local papi = import 'papi/{}/{}.libsonnet';".format(self.schema.product, self.schema.ruleFormat))
-
-  def write_to(self, path):
-    data = self.writer.getvalue()
-    dirname = os.path.dirname(path)
-    if len(dirname):
-      os.makedirs(dirname, exist_ok=True)
-    with open(path, "w") as fd:
-      fd.write(data)
-    print(path, file=sys.stderr)
-
-class VariablesConverter(BaseConverter):
-  def __init__(self, schema, variables, parent):
-    super(VariablesConverter, self).__init__(schema)
-    self.variables = variables
-    self.parent = parent
-
-  @property
-  def path(self):
-    return os.path.join(self.parent.pathPrefix, "variables.jsonnet")
-
-  def convert(self):
-    self.writer.writeln("[")
-    for variable in self.variables:
-      self.writer.writeln("{")
-      for (name, value) in variable.items():
-        self.writer.writeln("{}: {},".format(name, json.dumps(value)))
-      self.writer.writeln("},")
-    self.writer.writeln("]")
-    self.write_to(self.path)
-
-class RuleConverter(BaseConverter):
-  def __init__(self, schema, rule, parent=None):
-    super(RuleConverter, self).__init__(schema)
-    self.rule = rule
-    self.parent = parent
-
-  @property
-  def template(self):
-    return "papi.root" if self.ruleName == "default" else "papi.rule"
-
-  @property
-  def ruleName(self):
-    return self.rule.get("name")
-
-  @property
-  def normalizedName(self):
-    name = "rules" if self.ruleName == "default" else self.ruleName
-    return get_valid_filename(name)
-
-  @property
-  def filename(self):
-    return "{}.jsonnet".format(self.normalizedName)
-
-  @property
-  def path(self):
-    """
-    Path to this rules jsonnet file.
-    """
-    return (self.filename
-      if self.parent is None
-      else os.path.join(self.parent.pathPrefix, self.filename))
-
-  @property
-  def pathPrefix(self):
-    """
-    Path to the directory containing this rules children jsonnet files.
-    """
-    return (self.normalizedName
-      if self.parent is None
-      else os.path.join(self.parent.pathPrefix, self.normalizedName))
-
-  def convert(self):
-    self.write_papi_import_statement()
-
-    self.writer.writeln('{} {{'.format(self.template))
-    self.writer.writeln('name: {},'.format(json.dumps(self.ruleName)))
-
-    if len(self.rule.get("comments", "")) > 0:
-      self.writer.write('comments: ')
-      self.writer.writeMultilineString(self.rule.get("comments", ""))
-      self.writer.writeln(',')
-
-    if "uuid" in self.rule:
-      self.writer.writeln('uuid: {},'.format(json.dumps(self.rule.get('uuid'))))
-
-    if "options" in self.rule:
-      if len(self.rule.get("options")):
-        self.writer.writeln("options: {")
-        for (name, option) in self.rule.get("options").items():
-          self.writer.writeln("{}: {},".format(name, json.dumps(option)))
-        self.writer.writeln("},")
-
-    if "variables" in self.rule:
-      variablesConverter = VariablesConverter(self.schema, self.rule.get("variables"), self.parent)
-      variablesConverter.convert()
-      self.writer.writeln("variables: import {},".format(json.dumps(os.path.basename(variablesConverter.path))))
-
-    self.convert_criteria()
-    self.convert_behaviors()
-    self.convert_children()
-
-    if "customOverride" in self.rule:
-      customOverride = self.rule.get("customOverride", {})
-      if len(customOverride) > 0:
-        self.writer.writeln("customOverride: {")
-        for (k, v) in customOverride.items():
-          self.writer.writeln("{}: {},".format(k, json.dumps(v)))
-        self.writer.writeln("},")
-
-    if "advancedOverride" in self.rule:
-      xml = self.rule.get("advancedOverride")
-      advancedOverridePath = os.path.join(os.path.dirname(self.path), "advancedOverride.xml")
-      with open(advancedOverridePath, "w") as fd:
-        print(advancedOverridePath)
-        fd.write(xml)
-      self.writer.writeln("advancedOverride: importstr {},".format(json.dumps(os.path.basename(advancedOverridePath))))
-
-    self.writer.writeln('}')
-    self.write_to(self.path)
-
-  def convert_criteria(self):
-    self.convert_criteria_or_behaviors("criteria")
-    if len(self.rule.get("criteria", [])):
-      criteriaMustSatisfy = self.rule.get("criteriaMustSatisfy", "all")
-      if criteriaMustSatisfy != "all":
-        self.writer.writeln("criteriaMustSatisfy: {},".format(json.dumps(criteriaMustSatisfy)))
-
-  def convert_behaviors(self):
-    self.convert_criteria_or_behaviors("behaviors")
-
-  def convert_children(self):
-    children = []
-    from collections import Counter
-    nameCounter = Counter()
-    for child in self.rule.get("children", []):
-      name_key = child["name"].lower()
-      nameCounter[name_key] += 1
-      if nameCounter[name_key] > 1:
-        child["name"] = "{} {}".format(child["name"], nameCounter[name_key])
-      children.append(RuleConverter(self.schema, child, self))
-    if len(children):
-      self.writer.writeln("children: [")
-      for child in children:
-        child.convert()
-        relPath = os.path.join(self.normalizedName, child.filename)
-        self.writer.writeln("import '{}',".format(relPath))
-      self.writer.writeln("],")
-
-  def convert_criteria_or_behaviors(self, ns):
-    results = []
-    for atom in self.rule.get(ns, []):
-      options_schema_ptr = "/definitions/catalog/{}/{}/properties/options/properties".format(ns, atom.get("name"))
-      options_schema = self.schema.resolve_pointer(options_schema_ptr)
-      converted = dict(name=atom.get("name"), options=dict())
-      for (name, option) in atom.get("options", {}).items():
-        if name in options_schema:
-          # only include fields that are actually defined in the schema;
-          # PAPI **will** return extraneous fields, which will then cause
-          # trouble when we try to render the template back to json
-          converted["options"][name] = option
-      results.append(converted)
-    if len(results):
-      self.writer.writeln("{}: [".format(ns))
-      for atom in results:
-        self.writer.write("papi.{}.{}".format(ns, atom.get("name")))
-        # The uuid is normally stored at the root of the atom, e.g. {name: 'caching', uuid: 'xyz', options: {...}}
-        # Because we are generated simplified syntax, we output it as part of the body along with the options
-        # e.g. papi.behaviors.caching { uuid: 'xyz', ... }
-        if "uuid" in atom:
-          if not "options" in atom:
-            atom["options"] = {}
-          atom["options"]["uuid"] = atom.get("uuid")
-        if len(atom.get("options")):
-          self.writer.write(" ")
-          self.writer.write(json.dumps(atom.get("options"), indent="  "))
-        self.writer.writeln(",")
-      self.writer.writeln("],")
-
-class PropertyConverter(BaseConverter):
-  def __init__(self, schema, property):
-    super(PropertyConverter, self).__init__(schema)
-    self.property = property
-
-  @property
-  def normalizedName(self):
-    return get_valid_filename(self.property.name)
-
-  @property
-  def filename(self):
-    return "{}.jsonnet".format(self.normalizedName)
-
-  @property
-  def path(self):
-    """
-    Path to this propertie's jsonnet file.
-    """
-    return self.filename
-
-  @property
-  def pathPrefix(self):
-    """
-    Path to the directory containing this rules children jsonnet files.
-    """
-    return self.normalizedName
-
-  def convert(self):
-    self.write_papi_import_statement()
-    self.writer.writeln('{')
-    self.writer.writeln('productId: {},'.format(json.dumps(self.schema.product)))
-    self.writer.writeln('ruleFormat: {},'.format(json.dumps(self.schema.ruleFormat)))
-    if 'contractId' in self.property.data:
-      self.writer.writeln('contractId: {},'.format(json.dumps(self.property.data.get('contractId'))))
-    if 'groupId' in self.property.data:
-      self.writer.writeln('groupId: {},'.format(json.dumps(self.property.data.get('groupId'))))
-    defaultRule = RuleConverter(self.schema, self.property.data.get("rules"), self)
-    defaultRule.convert()
-    self.writer.writeln('rules: import {},'.format(json.dumps(defaultRule.path)))
-    self.writer.writeln('}')
-    self.write_to(self.path)
+    self.ruleTree = ruleTree
+    self.hostnames = hostnames
