@@ -16,20 +16,20 @@ PATH.
 
 To render configurations using the output of this CLI, you will of course need `jsonnet`.
 
-Of course, you will also need an `.edgerc` file populated with Akamai OPEN API credentials.
+Lastly, you will also need an `.edgerc` file populated with Akamai OPEN API credentials.
 
 ## Install
 
 ```
-akamai install https://github.com/akamai-contrib/cli-jsonnet.git
+akamai install akamai-contrib/cli-jsonnet.git
 ```
 
-## Managing Akamai Properties
+## Overview
 
 Using this CLI, you can express your configuration using syntax that resembles the following:
 
 ```
-local papi = import 'papi/SPM/v2020-03-04.libsonnet';
+local papi = import 'papi/SPM/v2021-07-30.libsonnet';
 
 papi.rule {
   name: 'Offload',
@@ -52,64 +52,102 @@ papi.rule {
 }
 ```
 
-### Creating the `papi` library
+## Commands
+
+### akamai jsonnet papi bootstrap
+
+> Use case: quickly setup an existing configuration as a multi-environment template
+
+Assuming an Ion configuration called `example_prod_pm` exists in the Akamai portal, the
+following command will convert it to Jsonnet in a folder (`example_jsonnet`) ready to be checked into
+version control.
+
+```bash
+akamai jsonnet papi bootstrap \
+    --propertyName example_prod_pm \
+    --propertyVersion latest \
+    --productId SPM \
+    --ruleFormat latest \
+    --out example_jsonnet
+```
+
+The CLI creates a simple `render.sh` script that turns the Jsonnet back into valid PAPI JSON.
+
+```bash
+cd example_jsonnet
+./render.sh
+```
+
+### akamai jsonnet papi ruleformat
+
+> Use case: download a new version of the libsonnet when upgrading rule formats
 
 In the example above, you may have noticed the following line:
 
 ```
-local papi = import 'papi/SPM/v2020-03-04.libsonnet';
+local papi = import 'papi/SPM/v2021-07-30.libsonnet';
 ```
 
-This can be easily generated using the following commands:
+This command will generate the contents of that file to its standard output:
 
 ```bash
-PRODUCT=SPM
-RULE_FORMAT=v2020-03-04
-mkdir -p jsonnet/lib/papi/${PRODUCT}
-akamai jsonnet papi --section papi schema --productId ${PRODUCT} --ruleFormat ${RULE_FORMAT} > jsonnet/lib/papi/SPM/${RULE_FORMAT}.libsonnet
+akamai jsonnet papi ruleformat \
+  --productId SPM \
+  --ruleFormat v2021-07-30
 ```
 
-> SPM is the product id for Ion Premier. To see which products are available,
-> this CLI provides the `akamai jsonnet papi products` command.
+### akamai jsonnet papi ruletree
 
-### Importing an existing property as jsonnet
-
-This can very quickly be done as well:
+> Use case: download a rule tree as jsonnet, without the ruleformat or hostnames
 
 ```
-PROPERTY_NAME=www.example.com
-mkdir -p jsonnet/templates
-cd jsonnet/templates
-akamai jsonnet papi property --section papi --productId ${PRODUCT} --ruleFormat ${RULE_FORMAT} --propertyName ${PROPERTY_NAME}
-cd -
+akamai jsonnet papi ruletree \ 
+    --propertyName example_prod_pm \
+    --propertyVersion latest \
+    --productId SPM \
+    --ruleFormat v2021-07-30 \
+    --out example_jsonnet_ruletree
 ```
 
-The command will create `www.example.com.jsonnet` in the current directory, along with supporting files. The tree
-might look like this:
+The command will create `example_prod_pm/` in the current directory, containing the rule tree:
 
 ```bash
 $ tree
 .
-├── www.example.com
-│   ├── rules
-│   │   ├── Offload
-│   │   │   ├── CSS_and_Javascript.jsonnet
-│   │   │   ├── Static_objects.jsonnet
-│   │   │   └── Uncacheable_Responses.jsonnet
-│   │   ├── Offload.jsonnet
-│   │   ├── Performance
-│   │   │   ├── Compressible_Objects.jsonnet
-│   │   │   └── JPEG_Images.jsonnet
-│   │   └── Performance.jsonnet
-│   ├── rules.jsonnet
-│   └── variables.jsonnet
-└── www.example.com.jsonnet
-
-4 directories, 10 files
+└── example_prod_pm
+  ├── rules
+  │   ├── Offload
+  │   │   ├── CSS_and_Javascript.jsonnet
+  │   │   ├── Static_objects.jsonnet
+  │   │   └── Uncacheable_Responses.jsonnet
+  │   ├── Offload.jsonnet
+  │   ├── Performance
+  │   │   ├── Compressible_Objects.jsonnet
+  │   │   └── JPEG_Images.jsonnet
+  │   └── Performance.jsonnet
+  ├── rules.jsonnet
+  └── variables.jsonnet
 ```
 
-You can then render this as json using `jsonnet`:
+### akamai jsonnet papi hostnames
+
+> Use case: download a property's hostname mapping as jsonnet, without the ruleformat or ruletree
 
 ```bash
-jsonnet -J jsonnet/lib jsonnet/templates/www.example.com.jsonnet
+akamai jsonnet papi hostnames --propertyName example_prod_pm --propertyVersion 2
 ```
+
+Output:
+
+```
+[
+  {
+    cnameType: 'EDGE_HOSTNAME',
+    cnameFrom: 'www.example.com',
+    cnameTo: 'www.example.com.edgesuite.net',
+  },
+]
+```
+
+Note: only the `cnameType`, `cnameFrom` and `cnameTo` fields are output by the command. The
+API outputs more fields, but it is not clear that they are required and have caused problems.
