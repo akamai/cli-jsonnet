@@ -86,8 +86,8 @@ def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest"
       print(
         '#!/bin/sh\n'
         '\n'
-        'echo ">" cd $(dirname $(realpath $0))\n'
-        'cd $(dirname $(realpath $0))\n'
+        'echo ">" cd $(dirname $0)\n'
+        'cd $(dirname $0)\n'
         'ls envs/*.jsonnet |\n'
         '  while IFS=/ read _ envFile; do\n'
         '    envName=$(basename $envFile .jsonnet)\n'
