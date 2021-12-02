@@ -41,7 +41,7 @@ class JsonnetWriter(StringIO):
     dirname = os.path.dirname(path)
     if len(dirname):
       os.makedirs(dirname, exist_ok=True)
-    with open(path, "w") as fd:
+    with open(path, "w", newline='\n') as fd:
       fd.write(data)
     print(os.path.realpath(path), file=sys.stderr)
 
