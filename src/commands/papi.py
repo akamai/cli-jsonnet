@@ -1,12 +1,12 @@
 import os, os.path
 import json
-from .jsonnet.writer import JsonnetWriter
-from .utils import pushd
-from .edgegrid import Session
-from .logging import logger
-from .jsonnet.papi.ruleformat import RuleFormat
-from .jsonnet.papi.property import Property
-from .jsonnet.papi.converter import RuleTreeConverter, RuleFormatConverter, HostnamesConverter
+from ..jsonnet.writer import JsonnetWriter
+from ..utils import pushd
+from ..edgegrid import Session
+from ..logging import logger
+from ..jsonnet.papi.ruleformat import RuleFormat
+from ..jsonnet.papi.property import Property
+from ..jsonnet.papi.converter import RuleTreeConverter, RuleFormatConverter, HostnamesConverter
 
 def products(edgerc, section, contractId, accountSwitchKey=None, **kwargs):
   session = Session(edgerc, section, accountSwitchKey)

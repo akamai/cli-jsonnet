@@ -40,7 +40,7 @@ def init_papi(parent):
   init_papi_hostnames(subparsers)
 
 def init_papi_products(parent):
-  from .papi import products
+  from .commands.papi import products
 
   parser = parent.add_parser("products", help="list available products")
   init_defaults(parser)
@@ -48,7 +48,7 @@ def init_papi_products(parent):
   parser.set_defaults(func=lambda args: products(**vars(args)))
 
 def init_papi_ruleformat(parent):
-  from .papi import ruleformat
+  from .commands.papi import ruleformat
 
   parser = parent.add_parser("ruleformat", help="create libsonnet file for the given product and rule format")
   init_defaults(parser)
@@ -57,7 +57,7 @@ def init_papi_ruleformat(parent):
   parser.set_defaults(func=lambda args: ruleformat(**vars(args)))
 
 def init_papi_ruletree(parent):
-  from .papi import ruletree
+  from .commands.papi import ruletree
 
   parser = parent.add_parser("ruletree", help="create jsonnet template from an existing PAPI rule tree")
   init_defaults(parser)
@@ -70,7 +70,7 @@ def init_papi_ruletree(parent):
   parser.set_defaults(func=lambda args: ruletree(**vars(args)))
 
 def init_papi_hostnames(parent):
-  from .papi import hostnames
+  from .commands.papi import hostnames
 
   parser = parent.add_parser("hostnames", help="create jsonnet template from an existing PAPI hostnames mapping")
   init_defaults(parser)
@@ -79,7 +79,7 @@ def init_papi_hostnames(parent):
   parser.set_defaults(func=lambda args: hostnames(**vars(args)))
 
 def init_papi_bootstrap(parent):
-  from .papi import bootstrap
+  from .commands.papi import bootstrap
 
   parser = parent.add_parser("bootstrap", help="bootstrap a property as a template in a multi-env setup")
   init_defaults(parser)
