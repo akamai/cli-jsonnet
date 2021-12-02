@@ -8,24 +8,24 @@ from ..jsonnet.papi.ruleformat import RuleFormat
 from ..jsonnet.papi.property import Property
 from ..jsonnet.papi.converter import RuleTreeConverter, RuleFormatConverter, HostnamesConverter
 
-def products(edgerc, section, contractId, accountSwitchKey=None, **kwargs):
-  session = Session(edgerc, section, accountSwitchKey)
+def products(edgerc, section, contractId, accountkey=None, **kwargs):
+  session = Session(edgerc, section, accountkey)
   response = session.get("/papi/v1/products", params={"contractId": contractId})
   products = response.json().get("products").get("items")
   print("\n".join(map(lambda p: "{productName}: {productId}".format(**p), products)))
 
-def ruleformat(edgerc, section, productId, ruleFormat="latest", accountSwitchKey=None, **kwargs):
-  ruleFormat = RuleFormat.get(edgerc, section, productId, ruleFormat, accountSwitchKey)
+def ruleformat(edgerc, section, productId, ruleFormat="latest", accountkey=None, **kwargs):
+  ruleFormat = RuleFormat.get(edgerc, section, productId, ruleFormat, accountkey)
   writer = JsonnetWriter()
   converter = RuleFormatConverter(ruleFormat)
   converter.convert(writer)
   print(writer.getvalue())
 
-def ruletree(edgerc, section, productId, propertyName, propertyVersion="latest", file=None, out=None, ruleFormat="latest", accountSwitchKey=None, **kwargs):
-  ruleFormat = RuleFormat.get(edgerc, section, productId, ruleFormat, accountSwitchKey)
+def ruletree(edgerc, section, productId, propertyName, propertyVersion="latest", file=None, out=None, ruleFormat="latest", accountkey=None, **kwargs):
+  ruleFormat = RuleFormat.get(edgerc, section, productId, ruleFormat, accountkey)
   property = None
   if file is None:
-    property = Property.get(edgerc, section, propertyName, propertyVersion, ruleFormat, accountSwitchKey)
+    property = Property.get(edgerc, section, propertyName, propertyVersion, ruleFormat, accountkey)
   else:
     with open(file, "r") as fd:
       data = json.loads(fd.read())
@@ -38,24 +38,24 @@ def ruletree(edgerc, section, productId, propertyName, propertyVersion="latest",
     ruleTreeConverter.convert(ruleTreeWriter)
     ruleTreeWriter.dump(os.path.basename(out))
 
-def hostnames(edgerc, section, propertyName, propertyVersion="latest", accountSwitchKey=None, **kwargs):
-  hostnames = Property.getHostnames(edgerc, section, propertyName, propertyVersion, accountSwitchKey)
+def hostnames(edgerc, section, propertyName, propertyVersion="latest", accountkey=None, **kwargs):
+  hostnames = Property.getHostnames(edgerc, section, propertyName, propertyVersion, accountkey)
   hostnamesWriter = JsonnetWriter()
   hostnamesConverter = HostnamesConverter(hostnames)
   hostnamesConverter.convert(hostnamesWriter)
   print(hostnamesWriter.getvalue())
 
-def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest", ruleFormat="latest", out=None, accountSwitchKey=None, bossman=False, **kwargs):
+def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest", ruleFormat="latest", out=None, accountkey=None, bossman=False, **kwargs):
   out = os.path.realpath(out if not out is None else propertyName)
   with pushd(out):
-    ruleFormat = RuleFormat.get(edgerc, section, productId, ruleFormat, accountSwitchKey)
+    ruleFormat = RuleFormat.get(edgerc, section, productId, ruleFormat, accountkey)
     with pushd('lib/papi/{}'.format(ruleFormat.product)):
       ruleFormatWriter = JsonnetWriter()
       ruleFormatConverter = RuleFormatConverter(ruleFormat)
       ruleFormatConverter.convert(ruleFormatWriter)
       ruleFormatWriter.dump('{}.libsonnet'.format(ruleFormat.ruleFormat))
 
-    property = Property.get(edgerc, section, propertyName, propertyVersion, ruleFormat, accountSwitchKey)
+    property = Property.get(edgerc, section, propertyName, propertyVersion, ruleFormat, accountkey)
     with pushd('template'):
       ruleTreeWriter = JsonnetWriter()
       ruleTreeConverter = RuleTreeConverter(ruleFormat, property.ruleTree)
@@ -115,11 +115,11 @@ def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest"
             '#     edgerc: {edgerc}\n'
             '#     section: {section}\n'
             '#     env_prefix: ""\n'
-            '#     switch_key: {accountSwitchKey}\n'
+            '#     switch_key: {accountkey}\n'
           ).format(
             edgerc=edgerc if edgerc else "~/.edgerc",
             section=section if section else "papi",
-            accountSwitchKey=accountSwitchKey if accountSwitchKey else "xyz"
+            accountkey=accountkey if accountkey else "xyz"
           ),
           file=bossmanRcFd
         )
