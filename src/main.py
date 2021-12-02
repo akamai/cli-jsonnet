@@ -78,7 +78,7 @@ def init_papi_hostnames(parent):
   parser.add_argument("--propertyVersion", required=False, default="latest")
   parser.set_defaults(func=lambda args: hostnames(**vars(args)))
 
-def init_papi_bootstrap(parent):
+def init_papi_bootstrap(parent: argparse.ArgumentParser):
   from .commands.papi import bootstrap
 
   parser = parent.add_parser("bootstrap", help="bootstrap a property as a template in a multi-env setup")
@@ -88,5 +88,7 @@ def init_papi_bootstrap(parent):
   parser.add_argument("--propertyName", required=True)
   parser.add_argument("--propertyVersion", required=False, default="latest")
   parser.add_argument("--out", required=False, help="output directory for the template entrypoint; default to {propertyName}")
-  parser.add_argument("--bossman", required=False, action='store_true', default=False, help="create .bossman configuration?")
+  deployers = parser.add_mutually_exclusive_group()
+  deployers.add_argument("--bossman", required=False, action='store_true', default=False, help="create Bossman configuration?")
+  deployers.add_argument("--terraform", required=False, action='store_true', default=False, help="create Terraform configuration?")
   parser.set_defaults(func=lambda args: bootstrap(**vars(args)))

@@ -45,9 +45,23 @@ def hostnames(edgerc, section, propertyName, propertyVersion="latest", accountke
   hostnamesConverter.convert(hostnamesWriter)
   print(hostnamesWriter.getvalue())
 
-def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest", ruleFormat="latest", out=None, accountkey=None, bossman=False, **kwargs):
+def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest", ruleFormat="latest", out=None, accountkey=None, bossman=False, terraform=False, **kwargs):
   out = os.path.realpath(out if not out is None else propertyName)
   with pushd(out):
+    with open('.gitignore', 'w') as gitignore:
+      if bossman:
+        gitignore.write(
+          """
+          .bossmancache
+          """
+        )
+      if terraform:
+        gitignore.write(
+          """
+          terraform.tfstate*
+          """
+        )
+
     ruleFormat = RuleFormat.get(edgerc, section, productId, ruleFormat, accountkey)
     with pushd('lib/papi/{}'.format(ruleFormat.product)):
       ruleFormatWriter = JsonnetWriter()
@@ -56,52 +70,117 @@ def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest"
       ruleFormatWriter.dump('{}.libsonnet'.format(ruleFormat.ruleFormat))
 
     property = Property.get(edgerc, section, propertyName, propertyVersion, ruleFormat, accountkey)
+    edgeHostnames = get_edgehostnames(edgerc, section, property.contractId, property.groupId)
     with pushd('template'):
       ruleTreeWriter = JsonnetWriter()
       ruleTreeConverter = RuleTreeConverter(ruleFormat, property.ruleTree)
       ruleTreeConverter.convert(ruleTreeWriter)
       ruleTreeWriter.dump('rules.jsonnet')
 
+      if terraform:
+        terraformWriter = JsonnetWriter()
+        terraformWriter.write(
+          f"""
+          local env = std.extVar('env');
+          local rules = import './rules.jsonnet';
+
+          {{
+            terraform: {{
+              required_version: '>= 1.0.0',
+              required_providers: {{
+                akamai: {{
+                  source: 'akamai/akamai',
+                  version: '1.8.0',
+                }},
+              }},
+            }},
+
+            provider: {{
+              akamai: {{
+                edgerc: '{edgerc}',
+                config_section: '{section}',
+              }}
+            }},
+
+            resource: {{
+              akamai_edge_hostname: {{
+                [hostname.resourceId]: {{
+                  edge_hostname: hostname.cnameTo,
+                  ip_behavior: hostname.ipBehavior,
+                  product_id: rules.productId,
+                  contract_id: rules.contractId,
+                  group_id: rules.groupId,
+                }}
+                for hostname in std.mapWithIndex(function (idx, hostname) hostname + {{resourceId: 'ehn_%d' % idx}}, env.hostnames)
+              }},
+
+              akamai_property: {{
+                [env.name]: {{
+                  name: env.name,
+                  product_id: rules.productId,
+                  rule_format: rules.ruleFormat,
+                  contract_id: rules.contractId,
+                  group_id: rules.groupId,
+                  hostnames: std.map(function (hostname) {{
+                      cname_from: hostname.cnameFrom,
+                      cname_to: hostname.cnameTo,
+                      cert_provisioning_type: 'CPS_MANAGED',
+                    }}, env.hostnames),
+                  rules: '${{templatefile("./rules.json", {{}})}}',
+                }}
+              }},
+
+              akamai_property_activation: {{
+                [env.name + '-staging']: {{
+                  property_id: '${{akamai_property.%s.id}}' % env.name,
+                  version: '${{akamai_property.%s.latest_version}}' % env.name,
+                  network: 'STAGING',
+                  contact: env.contact,
+                }},
+                [env.name + '-production']: {{
+                  property_id: '${{akamai_property.%s.id}}' % env.name,
+                  version: env.productionVersion,
+                  network: 'PRODUCTION',
+                  contact: env.contact,
+                }},
+              }},
+            }}
+          }}
+          """
+        )
+        terraformWriter.dump('terraform.tf.jsonnet')
+
     with pushd('envs'):
       envWriter = JsonnetWriter()
       envWriter.writeln('{')
-      envWriter.write('name: {},'.format(json.dumps(propertyName)))
+      envWriter.writeln('name: {},'.format(json.dumps(property.name)))
+      if terraform:
+        envWriter.writeln('// The terraform template will reference these variables')
+        envWriter.writeln('// - to determine which version should be active in production.')
+        envWriter.writeln('productionVersion: error "productionVersion should be an integer",')
+
+        envWriter.writeln('// - to determine the email addresses to send notifications to.')
+        envWriter.writeln('contact: error "contact should be an array of email addresses",')
+
       envWriter.write('hostnames: ')
       hostnamesConverter = HostnamesConverter(property.hostnames)
-      hostnamesConverter.convert(envWriter)
+      hostnamesConverter.convert(envWriter, terraform, edgeHostnames)
       envWriter.writeln(',')
       envWriter.writeln('}')
-      envWriter.dump('{}.jsonnet'.format(propertyName))
+      envWriter.dump('{}.jsonnet'.format(property.name))
 
     templateWriter = JsonnetWriter()
     templateWriter.writeln('local env = std.extVar("env");')
     templateWriter.writeln('')
     templateWriter.writeln('{')
     templateWriter.writeln('["%s/rules.json" % env.name]: import "template/rules.jsonnet",')
-    templateWriter.writeln('["%s/hostnames.json" % env.name]: env.hostnames,')
+    if not terraform:
+      # if we're generating for terraform, the hostnames are embedded in the terraform config file
+      templateWriter.writeln('["%s/hostnames.json" % env.name]: env.hostnames,')
+    if terraform:
+      templateWriter.writeln('["%s/terraform.tf.json" % env.name]: import "template/terraform.tf.jsonnet",')
     templateWriter.writeln('}')
     templateWriter.dump('template.jsonnet')
-
-    with open('./render.sh', 'w') as renderFd:
-      print(
-        '#!/bin/sh\n'
-        '\n'
-        'echo ">" cd $(dirname $0)\n'
-        'cd $(dirname $0)\n'
-        'ls envs/*.jsonnet |\n'
-        '  while IFS=/ read _ envFile; do\n'
-        '    envName=$(basename $envFile .jsonnet)\n'
-        '    echo "> Rendering $envName..."\n'
-        '    jsonnet -cm ./dist -J ./lib \\\n'
-        '      --ext-code-file env=./envs/${envFile} \\\n'
-        '      ./template.jsonnet\n'
-        '    echo\n'
-        '  done\n',
-        file=renderFd
-      )
-      os.chmod(renderFd.name, mode=0o750)
-      print('*** You may now render your template using:')
-      print('    {out}/render.sh'.format(out=out))
 
     if bossman:
       with open('./.bossman', 'w') as bossmanRcFd:
@@ -124,4 +203,53 @@ def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest"
           file=bossmanRcFd
         )
         os.chmod(bossmanRcFd.name, mode=0o640)
-      print('*** Check that {out}/.bossman contents are correct'.format(out=out))
+
+    with open('./render.sh', 'w') as renderFd:
+      print(
+        '#!/bin/sh\n'
+        '\n'
+        'echo ">" cd $(dirname $0)\n'
+        'cd $(dirname $0)\n'
+        'ls envs/*.jsonnet |\n'
+        '  while IFS=/ read _ envFile; do\n'
+        '    envName=$(basename $envFile .jsonnet)\n'
+        '    echo "> Rendering $envName..."\n'
+        '    jsonnet -cm ./dist -J ./lib \\\n'
+        '      --ext-code-file env=./envs/${envFile} \\\n'
+        '      ./template.jsonnet\n'
+        '    echo\n'
+        '  done\n',
+        file=renderFd
+      )
+      os.chmod(renderFd.name, mode=0o750)
+
+      if terraform:
+        print(f'### Some required parameters must be set in {out}/envs/{property.name}.jsonnet')
+      print('### You may now render your template using:')
+      print('    {out}/render.sh'.format(out=out))
+      if terraform:
+        print('### You will then be able to run terraform from the dist dir')
+        print(f'    cd {out}/dist/{property.name}')
+        print(f'    terraform init')
+        print(f'    terraform import akamai_property.{property.name} {property.id}')
+        for idx, hostname in enumerate(property.hostnames):
+          if hostname.get('cnameTo') in edgeHostnames:
+            ehnId = edgeHostnames.get(hostname.get('cnameTo')).get('edgeHostnameId')
+            print(f'    terraform import akamai_edge_hostname.ehn_{idx} {ehnId},{property.contractId},{property.groupId}')
+        print(f'    terraform apply')
+      if bossman:
+        print('### Then run the following commands to get started with Bossman'.format(out=out))
+        print('    cd {out}'.format(out=out))
+        print('    $EDITOR .bossman # Check that contents are correct'.format(out=out))
+        print('    git init && git add . && git commit -m "init"')
+        print('    bossman init')
+        print('    bossman status')
+
+def get_edgehostnames(edgerc, section, contractId, groupId, accountkey=None, **kwargs):
+  session = Session(edgerc, section, accountkey)
+  response = session.get("/papi/v1/edgehostnames", params={
+    "contractId": contractId,
+    "groupId": groupId,
+  })
+  edgeHostnames = response.json().get("edgeHostnames").get("items")
+  return dict((ehn.get('edgeHostnameDomain'), ehn) for ehn in edgeHostnames)

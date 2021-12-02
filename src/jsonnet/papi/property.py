@@ -94,9 +94,18 @@ class Property:
         ) % (url, response.status_code, response.reason, response.text)
       )
     hostnames = response.json().get('hostnames').get('items')
-    return Property(name, ruleTree, hostnames)
+    return Property(name, pid, ruleTree, hostnames)
 
-  def __init__(self, name, ruleTree, hostnames):
+  def __init__(self, name, id, ruleTree, hostnames):
     self.name = name
+    self.id = id
     self.ruleTree = ruleTree
     self.hostnames = hostnames
+
+  @property
+  def groupId(self):
+    return self.ruleTree.get('groupId')
+
+  @property
+  def contractId(self):
+    return self.ruleTree.get('contractId')
