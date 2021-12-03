@@ -105,8 +105,8 @@ class RuleConverter(RuleFormatEntityConverter):
           childWriter = JsonnetWriter()
           child.convert(childWriter)
           childWriter.dump(child.filename)
-          # use PosixPath to ensure paths use / regardless of platform
-          writer.writeln("import '{}',".format(pathlib.PosixPath(self.normalizedName, child.filename)))
+          # use PurePosixPath to ensure paths use / regardless of platform
+          writer.writeln("import '{}',".format(pathlib.PurePosixPath(self.normalizedName, child.filename)))
         writer.writeln("],")
 
   def convert_criteria_or_behaviors(self, ns, writer):
