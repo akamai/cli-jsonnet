@@ -1,4 +1,4 @@
-import os, json
+import os, json, pathlib
 from ...writer import JsonnetWriter
 from .ruleformatentity import RuleFormatEntityConverter
 from .variables import VariablesConverter
@@ -105,7 +105,8 @@ class RuleConverter(RuleFormatEntityConverter):
           childWriter = JsonnetWriter()
           child.convert(childWriter)
           childWriter.dump(child.filename)
-          writer.writeln("import '{}',".format(os.path.join(self.normalizedName, child.filename)))
+          # use PosixPath to ensure paths use / regardless of platform
+          writer.writeln("import '{}',".format(pathlib.PosixPath(self.normalizedName, child.filename)))
         writer.writeln("],")
 
   def convert_criteria_or_behaviors(self, ns, writer):
