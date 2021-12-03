@@ -6,7 +6,7 @@
     {
       "name": "jsonnet",
       "aliases": ["jsonnet"],
-      "version": "0.7.4",
+      "version": "0.7.5",
       "description": "Utilities for managing Akamai as jsonnet"
     }
   ]
