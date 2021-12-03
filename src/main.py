@@ -1,5 +1,5 @@
 import argparse
-import os, sys, textwrap
+import os
 
 def main():
   parser = argparse.ArgumentParser(prog="akamai-jsonnet", description="Akamai Jsonnet utilities.")
@@ -21,7 +21,10 @@ def init_defaults(parser):
 
 def init_edgerc(parser):
   env_edgerc = os.getenv("AKAMAI_EDGERC")
-  default_edgerc = env_edgerc if env_edgerc else os.path.join(os.path.expanduser("~"), ".edgerc")
+  # Intentionally not using expanduser or cross-platform pathsep here, because
+  # the edgerc path can be passed down to jsonnet and unescaped backslashes will break
+  # rendering.
+  default_edgerc = env_edgerc if env_edgerc else "~/.edgerc"
   parser.add_argument("--edgerc", help="Path to the edgerc file", default=default_edgerc)
 
   env_edgerc_section = os.getenv("AKAMAI_EDGERC_SECTION")

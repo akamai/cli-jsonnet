@@ -1,4 +1,4 @@
-import sys, os
+import sys, pathlib
 import requests
 from akamai.edgegrid import EdgeGridAuth, EdgeRc
 from .logging import logger
@@ -15,7 +15,7 @@ else:
 class Session(requests.Session):
 	def __init__(self, edgerc, section, accountSwitchKey=None, **kwargs):
 		super(Session, self).__init__(**kwargs)
-		self.edgerc = EdgeRc(edgerc)
+		self.edgerc = EdgeRc(str(pathlib.Path(edgerc).expanduser()))
 		self.section = section
 		self.accountSwitchKey = accountSwitchKey
 		self.auth = EdgeGridAuth(
