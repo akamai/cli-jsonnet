@@ -7,6 +7,7 @@ from ..logging import logger
 from ..jsonnet.papi.ruleformat import RuleFormat
 from ..jsonnet.papi.property import Property
 from ..jsonnet.papi.converter import RuleTreeConverter, RuleFormatConverter, HostnamesConverter
+import textwrap
 
 def products(edgerc, section, contractId, accountkey=None, **kwargs):
   session = Session(edgerc, section, accountkey)
@@ -50,17 +51,14 @@ def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest"
   with pushd(out):
     with open('.gitignore', 'w') as gitignore:
       if bossman:
-        gitignore.write(
+        gitignore.write(textwrap.dedent(
           """
           .bossmancache
           """
-        )
+        ))
       if terraform:
-        gitignore.write(
-          """
-          terraform.tfstate*
-          """
-        )
+        from ..utils import GITIGNORE_TERRAFORM
+        gitignore.write(textwrap.dedent(GITIGNORE_TERRAFORM))
 
     ruleFormat = RuleFormat.get(edgerc, section, productId, ruleFormat, accountkey)
     with pushd('lib/papi/{}'.format(ruleFormat.product)):
@@ -110,6 +108,7 @@ def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest"
                   product_id: rules.productId,
                   contract_id: rules.contractId,
                   group_id: rules.groupId,
+                  certificate: hostname.certificate,
                 }}
                 for hostname in std.mapWithIndex(function (idx, hostname) hostname + {{resourceId: 'ehn_%d' % idx}}, env.hostnames)
               }},
@@ -137,12 +136,23 @@ def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest"
                   network: 'STAGING',
                   contact: env.contact,
                 }},
-                [env.name + '-production']: {{
-                  property_id: '${{akamai_property.%s.id}}' % env.name,
-                  version: env.productionVersion,
-                  network: 'PRODUCTION',
-                  contact: env.contact,
-                }},
+
+              // Uncomment the following lines to let Terraform activate also on the
+              // Akamai production network.
+              // The strategy here is that the production network is pinned to a specific
+              // version defined in the Jsonnet environment file. This is a good strategy
+              // if you have few configurations, but it does require a new commit (to bless)
+              // a different version of the config.
+              // With many environments, it is likely better to always activate the latest version
+              // on the production network, but apply first on test envs (Essentially ignore
+              // the existence of the staging network).
+
+              //  [env.name + '-production']: {{
+              //    property_id: '${{akamai_property.%s.id}}' % env.name,
+              //    version: env.productionVersion,
+              //    network: 'PRODUCTION',
+              //    contact: env.contact,
+              //  }},
               }},
             }}
           }}
