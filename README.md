@@ -21,7 +21,7 @@ You will also need Akamai OPEN API credentials, please refer to the [Getting Sta
 ## Install
 
 ```
-akamai install akamai-contrib/cli-jsonnet.git
+akamai install akamai-contrib/cli-jsonnet
 ```
 
 ## Overview
