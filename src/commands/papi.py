@@ -68,7 +68,7 @@ def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest"
       ruleFormatWriter.dump('{}.libsonnet'.format(ruleFormat.ruleFormat))
 
     property = Property.get(edgerc, section, propertyName, propertyVersion, ruleFormat, accountkey)
-    edgeHostnames = get_edgehostnames(edgerc, section, property.contractId, property.groupId)
+    edgeHostnames = get_edgehostnames(edgerc, section, property.contractId, property.groupId, accountkey=accountkey)
     with pushd('template'):
       ruleTreeWriter = JsonnetWriter()
       ruleTreeConverter = RuleTreeConverter(ruleFormat, property.ruleTree)
