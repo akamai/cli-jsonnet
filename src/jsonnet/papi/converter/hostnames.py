@@ -6,7 +6,7 @@ class HostnamesConverter(BaseConverter):
     super(HostnamesConverter, self).__init__()
     self.hostnames = hostnames
 
-  def convert(self, writer, terraform, edgeHostnames):
+  def convert(self, writer, terraform = False, edgeHostnames = {}):
     writer.writeln('[')
     for mapping in self.hostnames:
       writer.writeln('{')
