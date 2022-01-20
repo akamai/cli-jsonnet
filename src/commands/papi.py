@@ -29,8 +29,8 @@ def ruletree(edgerc, section, productId, propertyName, propertyVersion="latest",
     property = Property.get(edgerc, section, propertyName, propertyVersion, ruleFormat, accountkey)
   else:
     with open(file, "r") as fd:
-      data = json.loads(fd.read())
-      property = Property(propertyName, data)
+      ruleTree = json.loads(fd.read())
+      property = Property(propertyName, None, ruleTree, [])
 
   out = '%s/rules.jsonnet' % (propertyName if out is None else out)
   with pushd(os.path.dirname(os.path.realpath(out))):
