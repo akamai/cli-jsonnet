@@ -16,12 +16,25 @@ PATH.
 
 To render configurations using the output of this CLI, you will of course need `jsonnet`.
 
+> The [`go-jsonnet`](https://github.com/google/go-jsonnet) flavour of jsonnet is strongly recommended.
+
 You will also need Akamai OPEN API credentials, please refer to the [Getting Started with APIs](https://developer.akamai.com/api/getting-started).
+
+### Windows Notes
+
+The CLI works with Windows in general.
+
+The `papi bootstrap` command generates a `render.sh` script which requires a Unix-like shell, until I figure out
+how to generate the same in something more native like PowerShell.
+
+Until then, installing under [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) provides excellent results.
+If WSL is not an option, you can simply do without the `render.sh` script, it should be fairly trivial and is only
+provided for convenience.
 
 ## Install
 
 ```
-akamai install akamai-contrib/cli-jsonnet
+akamai install jsonnet
 ```
 
 ## Overview
