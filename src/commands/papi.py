@@ -49,7 +49,7 @@ def hostnames(edgerc, section, propertyName, propertyVersion="latest", accountke
 def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest", ruleFormat="latest", out=None, accountkey=None, bossman=False, terraform=False, **kwargs):
   out = os.path.realpath(out if not out is None else propertyName)
   with pushd(out):
-    with open('.gitignore', 'w') as gitignore:
+    with open('.gitignore', 'w', newline='\n') as gitignore:
       if bossman:
         gitignore.write(textwrap.dedent(
           """
@@ -193,7 +193,7 @@ def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest"
     templateWriter.dump('template.jsonnet')
 
     if bossman:
-      with open('./.bossman', 'w') as bossmanRcFd:
+      with open('./.bossman', 'w', newline='\n') as bossmanRcFd:
         print(
           (
             'resources:\n'
@@ -214,7 +214,7 @@ def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest"
         )
         os.chmod(bossmanRcFd.name, mode=0o640)
 
-    with open('./render.sh', 'w') as renderFd:
+    with open('./render.sh', 'w', newline='\n') as renderFd:
       print(
         '#!/bin/sh\n'
         '\n'
