@@ -2,6 +2,9 @@ from ..writer import JsonnetWriter
 import sys
 from ...edgegrid import Session
 
+class PropertyError(Exception):
+  pass
+
 class Property:
   @staticmethod
   def getHostnames(edgerc, section, name, version="latest", accountSwitchKey=None):
@@ -10,7 +13,7 @@ class Property:
     print("*** searching for property...", name, file=sys.stderr)
     response = session.post("/papi/v1/search/find-by-value", json={"propertyName": name})
     if not response.ok:
-      raise RuntimeError(
+      raise PropertyError(
         (
           "Endpoint /papi/v1/search/find-by-value said:\n"
           "%s %s\n"
@@ -20,7 +23,7 @@ class Property:
 
     versions = response.json().get("versions").get("items")
     if len(versions) == 0:
-      raise RuntimeError("not found")
+      raise PropertyError("not found: %s" % name)
 
     pid = next(version.get("propertyId") for version in versions)
     if version == "latest":
@@ -31,7 +34,7 @@ class Property:
     url = "/papi/v1/properties/{}/versions/{}/hostnames".format(pid, version)
     response = session.get(url)
     if not response.ok:
-      raise RuntimeError(
+      raise PropertyError(
         (
           "Endpoint %s said:\n"
           "%s %s\n"
@@ -48,7 +51,7 @@ class Property:
     print("*** searching for property...", name, file=sys.stderr)
     response = session.post("/papi/v1/search/find-by-value", json={"propertyName": name})
     if not response.ok:
-      raise RuntimeError(
+      raise PropertyError(
         (
           "Endpoint /papi/v1/search/find-by-value said:\n"
           "%s %s\n"
@@ -58,7 +61,7 @@ class Property:
 
     versions = response.json().get("versions").get("items")
     if len(versions) == 0:
-      raise RuntimeError("not found")
+      raise PropertyError("not found: %s" % name)
 
     pid = next(version.get("propertyId") for version in versions)
     if version == "latest":
@@ -73,7 +76,7 @@ class Property:
     url = "/papi/v1/properties/{}/versions/{}/rules".format(pid, version)
     response = session.get(url, headers=headers, params=dict(validateRules=False, validateMode="fast"))
     if not response.ok:
-      raise RuntimeError(
+      raise PropertyError(
         (
           "Endpoint %s said:\n"
           "%s %s\n"
@@ -86,7 +89,7 @@ class Property:
     url = "/papi/v1/properties/{}/versions/{}/hostnames".format(pid, version)
     response = session.get(url)
     if not response.ok:
-      raise RuntimeError(
+      raise PropertyError(
         (
           "Endpoint %s said:\n"
           "%s %s\n"

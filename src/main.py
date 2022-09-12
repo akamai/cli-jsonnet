@@ -1,5 +1,8 @@
 import argparse
 import os
+import sys
+import textwrap
+import traceback
 
 def main():
   parser = argparse.ArgumentParser(prog="akamai-jsonnet", description="Akamai Jsonnet utilities.")
@@ -9,14 +12,17 @@ def main():
   init_papi(subparsers)
   args = parser.parse_args()
 
-  args.func(args)
-  # try:
-  #   args.func(args)
-  # except Exception as e:
-  #   print(textwrap.indent("Error: " + str(e), prefix='!!! '), file=sys.stderr)
-  #   sys.exit(1)
+  try:
+    args.func(args)
+  except Exception as e:
+    if args.verbose:
+      traceback.print_exc(file=sys.stderr)
+    else:
+      print(textwrap.indent("%s: %s" % (e.__class__.__name__, str(e)), prefix='!!! '), file=sys.stderr)
+    sys.exit(1)
 
 def init_defaults(parser):
+  parser.add_argument("--verbose", required=False, action='store_true', default=False, help="be more verbose")
   parser.set_defaults(func=lambda args: parser.print_help())
 
 def init_edgerc(parser):

@@ -13,6 +13,14 @@ class RuleFormat:
       ruleFormat=ruleFormat
     )
     response = session.get(url)
+    if not response.ok:
+      raise RuleFormatError(
+        (
+          "Endpoint %s said:\n"
+          "%s %s\n"
+          "%s\n"
+        ) % (url, response.status_code, response.reason, response.text)
+      )
     schema = response.json()
     return RuleFormat(schema, product, ruleFormat)
 
