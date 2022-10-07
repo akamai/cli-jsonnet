@@ -217,6 +217,7 @@ def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest"
     with open('./render.sh', 'w', newline='\n') as renderFd:
       print(
         '#!/bin/sh\n'
+        'set -e\n'
         '\n'
         'echo ">" cd $(dirname $0)\n'
         'cd $(dirname $0)\n'
