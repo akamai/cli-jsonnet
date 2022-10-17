@@ -245,7 +245,7 @@ def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest"
         'Foreach-Object {\n'
         '  $envName=Split-Path $_.FullName -LeafBase\n'
         '  echo "> Rendering $envName..."\n'
-        '  jsonnet -cm dist -J (Join-Path -Path ".." -ChildPath "lib")`\n'
+        '  jsonnet -cm dist -J "lib"`\n'
         '    --ext-code-file "env=$($_.FullName)"`\n'
         '      template.jsonnet\n'
         '  echo ""\n'
@@ -256,8 +256,10 @@ def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest"
 
     if terraform:
       print(f'### Some required parameters must be set in {out}/envs/{property.name}.jsonnet')
-    print('### You may now render your template using:')
+    print('### You may now render your template using shell script:')
     print('    {out}/render.sh'.format(out=out))
+    print('### or PowerShell script:')
+    print('    {out}/render.ps1'.format(out=out))
     if terraform:
       print('### You will then be able to run terraform from the dist dir')
       print(f'    cd {out}/dist/{property.name}')
