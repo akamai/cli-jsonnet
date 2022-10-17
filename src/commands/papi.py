@@ -234,27 +234,47 @@ def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest"
       )
       os.chmod(renderFd.name, mode=0o750)
 
-      if terraform:
-        print(f'### Some required parameters must be set in {out}/envs/{property.name}.jsonnet')
-      print('### You may now render your template using:')
-      print('    {out}/render.sh'.format(out=out))
-      if terraform:
-        print('### You will then be able to run terraform from the dist dir')
-        print(f'    cd {out}/dist/{property.name}')
-        print(f'    terraform init')
-        print(f'    terraform import akamai_property.{property.name} {property.id}')
-        for idx, hostname in enumerate(property.hostnames):
-          if hostname.get('cnameTo') in edgeHostnames:
-            ehnId = edgeHostnames.get(hostname.get('cnameTo')).get('edgeHostnameId')
-            print(f'    terraform import akamai_edge_hostname.ehn_{idx} {ehnId},{property.contractId},{property.groupId}')
-        print(f'    terraform apply')
-      if bossman:
-        print('### Then run the following commands to get started with Bossman'.format(out=out))
-        print('    cd {out}'.format(out=out))
-        print('    $EDITOR .bossman # Check that contents are correct'.format(out=out))
-        print('    git init && git add . && git commit -m "init"')
-        print('    bossman init')
-        print('    bossman status')
+    with open('./render.ps1', 'w', newline='\n') as renderFd:
+      print(
+        '#!/usr/bin/env pwsh\n'
+        '\n'
+        '$dirname = $PSScriptRoot\n'
+        'echo "> cd $dirname"\n'
+        'cd $dirname\n'
+        'Get-ChildItem "envs" -Filter "*.jsonnet" |\n'
+        'Foreach-Object {\n'
+        '  $envName=Split-Path $_.FullName -LeafBase\n'
+        '  echo "> Rendering $envName..."\n'
+        '  jsonnet -cm dist -J (Join-Path -Path ".." -ChildPath "lib")`\n'
+        '    --ext-code-file "env=$($_.FullName)"`\n'
+        '      template.jsonnet\n'
+        '  echo ""\n'
+        '}\n',
+        file=renderFd
+      )
+      os.chmod(renderFd.name, mode=0o750)
+
+    if terraform:
+      print(f'### Some required parameters must be set in {out}/envs/{property.name}.jsonnet')
+    print('### You may now render your template using:')
+    print('    {out}/render.sh'.format(out=out))
+    if terraform:
+      print('### You will then be able to run terraform from the dist dir')
+      print(f'    cd {out}/dist/{property.name}')
+      print(f'    terraform init')
+      print(f'    terraform import akamai_property.{property.name} {property.id}')
+      for idx, hostname in enumerate(property.hostnames):
+        if hostname.get('cnameTo') in edgeHostnames:
+          ehnId = edgeHostnames.get(hostname.get('cnameTo')).get('edgeHostnameId')
+          print(f'    terraform import akamai_edge_hostname.ehn_{idx} {ehnId},{property.contractId},{property.groupId}')
+      print(f'    terraform apply')
+    if bossman:
+      print('### Then run the following commands to get started with Bossman'.format(out=out))
+      print('    cd {out}'.format(out=out))
+      print('    $EDITOR .bossman # Check that contents are correct'.format(out=out))
+      print('    git init && git add . && git commit -m "init"')
+      print('    bossman init')
+      print('    bossman status')
 
 def get_edgehostnames(edgerc, section, contractId, groupId, accountkey=None, **kwargs):
   session = Session(edgerc, section, accountkey)
