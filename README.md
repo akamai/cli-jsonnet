@@ -20,16 +20,13 @@ To render configurations using the output of this CLI, you will of course need `
 
 You will also need Akamai OPEN API credentials, please refer to the [Getting Started with APIs](https://developer.akamai.com/api/getting-started).
 
-### Windows Notes
+### Render jsonnet to json
 
-The CLI works with Windows in general.
+The `papi bootstrap` command generates a `render.sh` script which requires a Unix-like shell and a
+PowerShell script `render.ps1`. You may use one or the other depending on your environment.
 
-The `papi bootstrap` command generates a `render.sh` script which requires a Unix-like shell, until I figure out
-how to generate the same in something more native like PowerShell.
-
-Until then, installing under [WSL](https://docs.microsoft.com/en-us/windows/wsl/install) provides excellent results.
-If WSL is not an option, you can simply do without the `render.sh` script, it should be fairly trivial and is only
-provided for convenience.
+You can also do without the render script, it should be fairly trivial and is only provided
+for convenience.
 
 ## Install
 
