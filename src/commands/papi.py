@@ -88,7 +88,7 @@ def bootstrap(edgerc, section, productId, propertyName, propertyVersion="latest"
               required_providers: {{
                 akamai: {{
                   source: 'akamai/akamai',
-                  version: '1.8.0',
+                  version: '>=2.4.2',
                 }},
               }},
             }},
