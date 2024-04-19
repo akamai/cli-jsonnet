@@ -10,7 +10,7 @@ class HostnamesConverter(BaseConverter):
     writer.writeln('[')
     for mapping in self.hostnames:
       writer.writeln('{')
-      for k in ('cnameType', 'cnameFrom', 'cnameTo'):
+      for k in ('cnameType', 'cnameFrom', 'cnameTo', 'certProvisioningType'):
         if k in mapping:
           writer.writeln('{}: {},'.format(k, json.dumps(mapping.get(k))))
       if terraform:
